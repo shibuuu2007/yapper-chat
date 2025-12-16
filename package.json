@@ -1,21 +1,16 @@
 {
-  "name": "local-chat",
+  "name": "yapper-chat",
   "version": "1.0.0",
-  "description": "",
-  "main": "main.js",
+  "description": "My chat app",
+  "main": "server.js",
   "scripts": {
-    "start": "electron ."
+    "start": "node server.js"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "express": "^4.21.2",
-    "multer": "^2.0.2",
-    "socket.io": "^4.8.1",
-    "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {
-    "electron": "^33.2.1"
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.1"
   }
 }
