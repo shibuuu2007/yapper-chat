@@ -21,7 +21,6 @@ db.connect()
   .catch(err => console.error('DB Connection Error:', err));
 
 // --- SETUP STORAGE (MEMORY) ---
-// This keeps images in RAM temporarily so we can convert them to text
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -34,7 +33,7 @@ app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   const hash = bcrypt.hashSync(password, 10);
   
-  // Default Profile Pic (Gray Circle)
+  // Default Profile Pic
   const defaultPic = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
   try {
@@ -73,25 +72,16 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Route 1: Update Wallpaper (Color)
-app.post('/update-wallpaper-color', async (req, res) => {
-  const { username, color } = req.body;
-  await db.query(`UPDATE users SET wallpaper = $1 WHERE username = $2`, [color, username]);
-  res.json({ success: true });
-});
-
-// Route 2: Upload Wallpaper (Image)
+// Wallpaper Route
 app.post('/upload-wallpaper-image', upload.single('wallpaper'), async (req, res) => {
   if (!req.file) return res.json({ success: false });
   const username = req.body.username;
-  // Convert image to Base64 Text
   const imageString = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-  
   await db.query(`UPDATE users SET wallpaper = $1 WHERE username = $2`, [imageString, username]);
   res.json({ success: true, url: imageString });
 });
 
-// Route 3: Upload Profile Picture (NEW!)
+// Profile Pic Route
 app.post('/upload-profile-pic', upload.single('avatar'), async (req, res) => {
   if (!req.file) return res.json({ success: false });
 
