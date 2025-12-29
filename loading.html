@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background-color: #1a1a1a; /* Dark soothing background */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', monospace;
+      color: #e0e0e0;
+      user-select: none;
+    }
+
+    /* The Pulsing Circle */
+    .loader {
+      width: 80px;
+      height: 80px;
+      background-color: #ff007f; /* Your Yapper Pink */
+      border-radius: 50%;
+      box-shadow: 0 0 0 rgba(255, 0, 127, 0.4);
+      animation: pulse 2s infinite;
+      margin-bottom: 30px;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 127, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 30px rgba(255, 0, 127, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 127, 0); }
+    }
+
+    h2 { font-weight: normal; letter-spacing: 3px; opacity: 0.8; }
+    p { font-size: 12px; color: #666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="loader"></div>
+  <h2>CONNECTING...</h2>
+  <p>Waking up the server, please wait.</p>
+
+  <script>
+    // This script keeps knocking on your server door
+    // When the server answers "200 OK", we switch the screen.
+    const SERVER_URL = 'https://yapper-chat.onrender.com'; // YOUR LIVE LINK
+
+    function checkServer() {
+      fetch(SERVER_URL, { mode: 'no-cors' }) // Simple ping
+        .then(() => {
+            // If we get here, the server is alive!
+            // Redirect this window to the actual app
+            window.location.href = SERVER_URL;
+        })
+        .catch(err => {
+            // If error (server sleeping), wait 2 seconds and try again
+            console.log("Waiting for server...");
+            setTimeout(checkServer, 2000);
+        });
+    }
+
+    // Start checking immediately
+    checkServer();
+  </script>
+</body>
+</html>
