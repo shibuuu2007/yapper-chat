@@ -34,7 +34,7 @@
       position: absolute;
       height: 50px;  
       width: 225px;  
-      background: transparent; /* Set to transparent for final look */
+      background: transparent; 
       cursor: pointer;
       border: none;
     }
@@ -49,7 +49,7 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      pointer-events: none; /* Prevents clicking when hidden */
+      pointer-events: none; 
     }
 
     .glass-panel {
@@ -65,10 +65,9 @@
       border-radius: 20px;
       text-align: center;
       width: 300px;
-      position: relative; /* Needed for positioning the back button */
+      position: relative; 
     }
 
-    /* NEW: Back Button Style */
     .back-btn {
       position: absolute;
       top: 15px;
@@ -86,14 +85,14 @@
       width: 100%; padding: 12px; margin: 10px 0;
       background: rgba(0,0,0,0.5); border: 1px solid #555;
       color: white; border-radius: 5px; outline: none;
-      box-sizing: border-box; /* Fixes padding issues */
+      box-sizing: border-box; 
     }
     
     button.action-btn {
       width: 100%; padding: 12px; margin-top: 10px;
       background: #ff007f; color: white; border: none;
       font-weight: bold; cursor: pointer; border-radius: 5px;
-      text-transform: uppercase; /* Makes text consistent */
+      text-transform: uppercase; 
     }
     button.action-btn:hover { background: #d6006c; }
 
@@ -102,147 +101,4 @@
     
     #header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
     #messages { flex-grow: 1; list-style: none; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    #messages li { padding: 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.5); max-width: 70%; width: fit-content; }
-    #form { padding: 20px; display: flex; gap: 10px; }
-    #input-msg { flex-grow: 1; border-radius: 20px; border: 1px solid #555; background: rgba(0,0,0,0.5); color: white; padding: 10px 20px; outline: none; }
-
-  </style>
-</head>
-<body>
-
-  <div id="welcome-overlay">
-    <div id="btn-login-ghost" class="ghost-btn" onclick="enterApp('login')"></div>
-    <div id="btn-register-ghost" class="ghost-btn" onclick="enterApp('register')"></div>
-  </div>
-
-  <div id="app-container">
-    
-    <div id="auth-box" class="glass-panel">
-      <button class="back-btn" onclick="goBack()" title="Return to Home">←</button>
-      
-      <h2 id="auth-title">LOGIN</h2>
-      <input id="u-name" placeholder="Username" autocomplete="off" />
-      <input id="p-word" type="password" placeholder="Password" />
-      
-      <button id="auth-btn" class="action-btn" onclick="handleAuth()">GO</button>
-      
-      <p id="status" style="color: #ff4d4d; margin-top: 10px; font-size: 0.9em;"></p>
-    </div>
-
-    <div id="chat-interface">
-      <div id="header" class="glass-panel">
-        <span id="welcome-msg" style="font-weight: bold;"></span>
-	<button onclick="location.reload()" style="background:black; padding: 8px 15px; border-radius: 5px; border:none; color:#4da5ff; cursor:pointer; font-weight: bold;">LOGOUT</button>
-      </div>
-      <ul id="messages"></ul>
-      <form id="form" class="glass-panel">
-        <input id="input-msg" autocomplete="off" placeholder="Type a message..." />
-        <button class="action-btn" style="width: auto; margin:0;">SEND</button>
-      </form>
-    </div>
-
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    var socket = io();
-    var currentUser = null;
-    var currentMode = 'login'; 
-
-    // --- 1. TRANSITION LOGIC ---
-    function enterApp(mode) {
-      currentMode = mode;
-      
-      // Update Title AND Button Text
-      const text = mode.toUpperCase();
-      document.getElementById('auth-title').innerText = text;
-      document.getElementById('auth-btn').innerText = text; // Changes button to "LOGIN" or "REGISTER"
-      
-      // Fade out Welcome
-      const overlay = document.getElementById('welcome-overlay');
-      overlay.style.opacity = '0';
-      overlay.style.transform = 'scale(1.1)'; 
-      overlay.style.pointerEvents = 'none'; // Disable clicking welcome buttons
-
-      // Fade in App
-      const app = document.getElementById('app-container');
-      app.style.opacity = '1';
-      app.style.pointerEvents = 'all'; // Enable clicking app buttons
-	
-	// --- ENABLE ENTER KEY ---
-    document.getElementById('p-word').addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') handleAuth();
-    });
-    }
-
-    // --- NEW: GO BACK LOGIC ---
-    function goBack() {
-      // Fade out App
-      const app = document.getElementById('app-container');
-      app.style.opacity = '0';
-      app.style.pointerEvents = 'none';
-
-      // Fade in Welcome
-      const overlay = document.getElementById('welcome-overlay');
-      overlay.style.opacity = '1';
-      overlay.style.transform = 'scale(1)';
-      overlay.style.pointerEvents = 'all';
-    }
-
-    // --- 2. AUTH LOGIC ---
-    async function handleAuth() {
-      const u = document.getElementById('u-name').value;
-      const p = document.getElementById('p-word').value;
-      if(!u || !p) return;
-
-      const endpoint = currentMode === 'login' ? '/login' : '/register';
-      
-      const res = await fetch(endpoint, { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: u, password: p }) 
-      });
-      const data = await res.json();
-
-      if (currentMode === 'register') {
-        if(data.success) {
-            alert("Account Created! Switching to Login...");
-            // Switch mode to Login automatically
-            currentMode = 'login';
-            document.getElementById('auth-title').innerText = "LOGIN";
-            document.getElementById('auth-btn').innerText = "LOGIN";
-        } else {
-            document.getElementById('status').innerText = data.message;
-        }
-      } else {
-        // Login Mode
-        if(data.success) {
-          currentUser = data.username;
-          document.getElementById('auth-box').style.display = 'none';
-          document.getElementById('chat-interface').style.display = 'flex';
-          document.getElementById('welcome-msg').innerText = "USER: " + currentUser;
-        } else {
-          document.getElementById('status').innerText = data.message;
-        }
-      }
-    }
-
-    // --- 3. CHAT LOGIC ---
-    document.getElementById('form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      var input = document.getElementById('input-msg');
-      if (input.value) {
-        socket.emit('chat message', { user: currentUser, text: input.value });
-        input.value = '';
-      }
-    });
-
-    socket.on('chat message', function(msg) {
-      var item = document.createElement('li');
-      item.innerHTML = `<strong style="color:#ff007f">${msg.user}:</strong> ${msg.text}`;
-      document.getElementById('messages').appendChild(item);
-      window.scrollTo(0, document.body.scrollHeight);
-    });
-  </script>
-</body>
-</html>	
+    #messages li { padding: 10px 1
