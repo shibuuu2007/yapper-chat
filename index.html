@@ -11,8 +11,8 @@
       overflow: hidden;
       font-family: 'JetBrains Mono', monospace;
       color: white;
-      /* LAYER 1: The Gradient Background */
-      background: url('/assets/background.png') no-repeat center center fixed; 
+      /* FIX: Removed the leading slash so it works in the App */
+      background: url('assets/background.png') no-repeat center center fixed; 
       background-size: cover;
       height: 100vh;
       display: flex;
@@ -23,7 +23,8 @@
     #welcome-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: url('/assets/welcome.png') no-repeat center center;
+      /* FIX: Removed the leading slash */
+      background: url('assets/welcome.png') no-repeat center center;
       background-size: cover;
       z-index: 9999;
       transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
@@ -101,4 +102,219 @@
     
     #header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
     #messages { flex-grow: 1; list-style: none; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    #messages li { padding: 10px 1
+    #messages li { padding: 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.5); max-width: 70%; width: fit-content; }
+    #form { padding: 20px; display: flex; gap: 10px; }
+    #input-msg { flex-grow: 1; border-radius: 20px; border: 1px solid #555; background: rgba(0,0,0,0.5); color: white; padding: 10px 20px; outline: none; }
+
+    /* PROFILE PIC STYLES */
+    .user-avatar {
+      width: 45px; 
+      height: 45px;
+      border-radius: 50%; 
+      margin-right: 15px;
+      border: 2px solid #ff007f;
+      object-fit: cover;
+      cursor: pointer; 
+      transition: transform 0.2s;
+    }
+    .user-avatar:hover { transform: scale(1.1); }
+    
+    #header-left { display: flex; align-items: center; }
+
+  </style>
+</head>
+<body>
+
+  <div id="welcome-overlay">
+    <div id="btn-login-ghost" class="ghost-btn" onclick="enterApp('login')"></div>
+    <div id="btn-register-ghost" class="ghost-btn" onclick="enterApp('register')"></div>
+  </div>
+
+  <div id="app-container">
+    
+    <div id="auth-box" class="glass-panel">
+      <button class="back-btn" onclick="goBack()" title="Return to Home">←</button>
+      
+      <h2 id="auth-title">LOGIN</h2>
+      <input id="u-name" placeholder="Username" autocomplete="off" />
+      <input id="p-word" type="password" placeholder="Password" />
+      
+      <button id="auth-btn" class="action-btn" onclick="handleAuth()">GO</button>
+      
+      <p id="status" style="color: #ff4d4d; margin-top: 10px; font-size: 0.9em;"></p>
+    </div>
+
+    <div id="chat-interface">
+      <div id="header" class="glass-panel">
+        <div id="header-left">
+            <img id="my-avatar" class="user-avatar" src="" onclick="document.getElementById('avatar-input').click()" title="Change Profile Pic">
+            <input type="file" id="avatar-input" hidden accept="image/*"> 
+            <span id="welcome-msg" style="font-weight: bold;"></span>
+        </div>
+
+        <div>
+            <input type="file" id="wallpaper-input" hidden accept="image/*">
+            
+            <button onclick="document.getElementById('wallpaper-input').click()" style="background:#ff007f; padding: 8px 15px; border-radius: 5px; border:none; color:white; cursor:pointer; font-weight: bold; margin-right: 10px;">WALLPAPER</button>
+            <button onclick="location.reload()" style="background:black; padding: 8px 15px; border-radius: 5px; border:none; color:#4da5ff; cursor:pointer; font-weight: bold;">LOGOUT</button>
+        </div>
+      </div>
+
+      <ul id="messages"></ul>
+      <form id="form" class="glass-panel">
+        <input id="input-msg" autocomplete="off" placeholder="Type a message..." />
+        <button class="action-btn" style="width: auto; margin:0;">SEND</button>
+      </form>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    var currentUser = null;
+    var currentMode = 'login'; 
+
+    // --- 1. TRANSITION LOGIC ---
+    function enterApp(mode) {
+      currentMode = mode;
+      
+      const text = mode.toUpperCase();
+      document.getElementById('auth-title').innerText = text;
+      document.getElementById('auth-btn').innerText = text; 
+      
+      const overlay = document.getElementById('welcome-overlay');
+      overlay.style.opacity = '0';
+      overlay.style.transform = 'scale(1.1)'; 
+      overlay.style.pointerEvents = 'none'; 
+
+      const app = document.getElementById('app-container');
+      app.style.opacity = '1';
+      app.style.pointerEvents = 'all'; 
+    
+    document.getElementById('p-word').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') handleAuth();
+    });
+    }
+
+    function goBack() {
+      const app = document.getElementById('app-container');
+      app.style.opacity = '0';
+      app.style.pointerEvents = 'none';
+
+      const overlay = document.getElementById('welcome-overlay');
+      overlay.style.opacity = '1';
+      overlay.style.transform = 'scale(1)';
+      overlay.style.pointerEvents = 'all';
+    }
+
+    // --- 2. AUTH LOGIC ---
+    async function handleAuth() {
+      const u = document.getElementById('u-name').value;
+      const p = document.getElementById('p-word').value;
+      if(!u || !p) return;
+
+      const endpoint = currentMode === 'login' ? '/login' : '/register';
+      
+      const res = await fetch(endpoint, { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: u, password: p }) 
+      });
+      const data = await res.json();
+
+      if (currentMode === 'register') {
+        if(data.success) {
+            alert("Account Created! Switching to Login...");
+            currentMode = 'login';
+            document.getElementById('auth-title').innerText = "LOGIN";
+            document.getElementById('auth-btn').innerText = "LOGIN";
+        } else {
+            document.getElementById('status').innerText = data.message;
+        }
+      } else {
+        // Login Mode
+        if(data.success) {
+          currentUser = data.username;
+          
+          // Apply Wallpaper
+          if (data.wallpaper && data.wallpaper.startsWith('#')) {
+             document.body.style.background = data.wallpaper;
+          } else if (data.wallpaper) {
+             document.body.style.background = `url(${data.wallpaper}) no-repeat center center fixed`;
+             document.body.style.backgroundSize = "cover";
+          }
+          
+          // Apply Profile Picture
+          document.getElementById('my-avatar').src = data.profile_pic || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+          document.getElementById('auth-box').style.display = 'none';
+          document.getElementById('chat-interface').style.display = 'flex';
+          document.getElementById('welcome-msg').innerText = "USER: " + currentUser;
+        } else {
+          document.getElementById('status').innerText = data.message;
+        }
+      }
+    }
+
+    // --- 3. CHAT LOGIC ---
+    document.getElementById('form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var input = document.getElementById('input-msg');
+      if (input.value) {
+        socket.emit('chat message', { user: currentUser, text: input.value });
+        input.value = '';
+      }
+    });
+
+    socket.on('chat message', function(msg) {
+      var item = document.createElement('li');
+      item.innerHTML = `<strong style="color:#ff007f">${msg.user}:</strong> ${msg.text}`;
+      document.getElementById('messages').appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+
+    // --- 4. PROFILE PIC UPLOAD ---
+    document.getElementById('avatar-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+        formData.append('username', currentUser);
+
+        try {
+            const res = await fetch('/upload-profile-pic', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('my-avatar').src = data.url;
+            } else {
+                alert("Upload failed");
+            }
+        } catch (err) { console.error(err); }
+    });
+
+    // --- 5. WALLPAPER UPLOAD ---
+    document.getElementById('wallpaper-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('wallpaper', file);
+        formData.append('username', currentUser);
+
+        try {
+            const res = await fetch('/upload-wallpaper-image', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                document.body.style.background = `url(${data.url}) no-repeat center center fixed`;
+                document.body.style.backgroundSize = "cover";
+            } else {
+                alert("Wallpaper upload failed");
+            }
+        } catch (err) { console.error(err); }
+    });
+
+  </script>
+</body>
+</html>
