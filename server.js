@@ -33,13 +33,15 @@ app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   const hash = bcrypt.hashSync(password, 10);
   
-  // Default Profile Pic
-  const defaultPic = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  // --- UPDATED DEFAULTS ---
+  // Now using your local asset files instead of code!
+  const defaultPic = "assets/user.png"; 
+  const defaultWallpaper = "assets/background.png"; 
 
   try {
     await db.query(
       `INSERT INTO users (username, password, wallpaper, profile_pic) VALUES ($1, $2, $3, $4)`, 
-      [username, hash, '#222222', defaultPic]
+      [username, hash, defaultWallpaper, defaultPic]
     );
     res.json({ success: true });
   } catch (err) {
