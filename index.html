@@ -14,6 +14,39 @@
       background-size: cover; height: 100vh; display: flex; flex-direction: column;
     }
 
+    /* --- 1. WELCOME OVERLAY (Restored) --- */
+    #welcome-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: url('assets/welcome.png') no-repeat center center;
+      background-size: cover;
+      z-index: 9999;
+      transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+    }
+
+    /* INVISIBLE GHOST BUTTONS */
+    .ghost-btn {
+      position: absolute;
+      height: 50px;  
+      width: 225px;  
+      background: transparent; 
+      cursor: pointer;
+      border: none;
+    }
+    #btn-login-ghost { top: 55%; left: 10%; }
+    #btn-register-ghost { top: 55%; left: 33%; }
+
+    /* --- 2. MAIN APP CONTAINER --- */
+    #app-container {
+      opacity: 0;
+      transition: opacity 0.8s ease; 
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      pointer-events: none; /* Can't click until welcome fades */
+    }
+
     /* GLASS EFFECT */
     .glass-panel { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; }
 
@@ -22,46 +55,41 @@
         margin: auto; 
         padding: 40px; 
         text-align: center; 
-        width: 350px; /* Slightly wider for better spacing */
+        width: 350px; 
         position: relative; 
         display: flex; 
         flex-direction: column; 
         gap: 15px; 
     }
 
+    /* BACK BUTTON (To go from Login back to Welcome) */
+    .back-btn {
+      position: absolute; top: 10px; left: 15px;
+      background: transparent; border: none; color: #aaa;
+      font-size: 1.5em; cursor: pointer; padding: 0; width: auto;
+    }
+    .back-btn:hover { color: white; }
+
     input { 
-        width: 100%; 
-        padding: 12px; 
-        background: rgba(0,0,0,0.5); 
-        border: 1px solid #555; 
-        color: white; 
-        border-radius: 5px; 
-        outline: none; 
-        text-align: center; 
+        width: 100%; padding: 12px; background: rgba(0,0,0,0.5); 
+        border: 1px solid #555; color: white; border-radius: 5px; 
+        outline: none; text-align: center; 
     }
     
-    /* FIX: Added width: 100% so buttons match the input bars */
+    /* BUTTON STYLES (Fixed Alignment) */
     button { 
-        width: 100%; 
-        padding: 12px; 
-        background: #ff007f; 
-        color: white; 
-        border: none; 
-        font-weight: bold; 
-        cursor: pointer; 
-        border-radius: 5px; 
-        text-transform: uppercase; 
-        transition: 0.2s; 
-        font-family: inherit;
+        width: 100%; padding: 12px; background: #ff007f; color: white; 
+        border: none; font-weight: bold; cursor: pointer; border-radius: 5px; 
+        text-transform: uppercase; transition: 0.2s; font-family: inherit;
     }
     button:hover { background: #d6006c; transform: scale(1.02); }
     button.secondary { background: #444; }
     button.secondary:hover { background: #666; }
 
     /* CHAT LAYOUT */
-    #chat-container { display: none; height: 100vh; display: flex; } /* Flex row */
+    #chat-container { display: none; height: 100vh; display: flex; }
     
-    /* SIDEBAR (Room Info) */
+    /* SIDEBAR */
     #sidebar { width: 250px; background: rgba(0,0,0,0.8); padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; }
     #room-display { font-size: 2em; color: #ff007f; font-weight: bold; margin-bottom: 5px; }
     #user-list { list-style: none; padding: 0; margin-top: 20px; overflow-y: auto; }
@@ -80,78 +108,116 @@
 
     .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #ff007f; object-fit: cover; cursor: pointer; }
 
-    /* HIDE/SHOW SECTIONS */
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-  <div id="login-screen" class="center-box glass-panel">
-    <h2>LOGIN</h2>
-    <input id="u-name" placeholder="Username" autocomplete="off" />
-    <input id="p-word" type="password" placeholder="Password" />
-    <button onclick="handleAuth('login')">Login</button>
-    <button class="secondary" onclick="handleAuth('register')">Register</button>
-    <p id="status" style="color: #ff4d4d; font-size: 0.8em;"></p>
+  <div id="welcome-overlay">
+    <div id="btn-login-ghost" class="ghost-btn" onclick="enterApp('login')"></div>
+    <div id="btn-register-ghost" class="ghost-btn" onclick="enterApp('register')"></div>
   </div>
 
-  <div id="lobby-screen" class="center-box glass-panel hidden">
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <img id="lobby-avatar" class="user-avatar" src="">
-        <h2 id="lobby-welcome">Welcome</h2>
-    </div>
-    <hr style="width: 100%; border: 0; border-top: 1px solid #555;">
-    
-    <h3>JOIN A ROOM</h3>
-    <input id="room-code-input" placeholder="Enter 4-Char Code" maxlength="4" style="text-transform: uppercase; letter-spacing: 3px; font-weight: bold;">
-    <button onclick="joinRoom()">JOIN ROOM</button>
-    
-    <p>— OR —</p>
-    <button class="secondary" onclick="createRoom()">CREATE NEW ROOM</button>
-  </div>
+  <div id="app-container">
 
-  <div id="chat-container" class="hidden">
-    
-    <div id="sidebar">
-      <small>CURRENT ROOM</small>
-      <div id="room-display">----</div>
-      <small style="margin-top: 20px;">ONLINE USERS</small>
-      <ul id="user-list">
-        </ul>
-      <div style="margin-top: auto;">
-        <button onclick="leaveRoom()" style="width: 100%; background: #333;">LEAVE ROOM</button>
+      <div id="login-screen" class="center-box glass-panel">
+        <button class="back-btn" onclick="goBack()" title="Back">←</button>
+        <h2 id="auth-title">LOGIN</h2>
+        <input id="u-name" placeholder="Username" autocomplete="off" />
+        <input id="p-word" type="password" placeholder="Password" />
+        <button id="auth-btn" onclick="handleAuth()">GO</button>
+        <p id="status" style="color: #ff4d4d; font-size: 0.8em;"></p>
       </div>
-    </div>
 
-    <div id="main-chat">
-      <div id="header">
-        <div style="display: flex; align-items: center;">
-             <input type="file" id="avatar-input" hidden accept="image/*"> 
-            <input type="file" id="wallpaper-input" hidden accept="image/*">
-            <img id="header-avatar" class="user-avatar" src="" onclick="document.getElementById('avatar-input').click()" title="Change Profile Pic">
-            <span id="header-username" style="font-weight: bold; margin-left: 10px;">User</span>
+      <div id="lobby-screen" class="center-box glass-panel hidden">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <img id="lobby-avatar" class="user-avatar" src="">
+            <h2 id="lobby-welcome">Welcome</h2>
         </div>
-        <button onclick="document.getElementById('wallpaper-input').click()" style="padding: 5px 10px; font-size: 0.8em; width: auto;">BG</button>
+        <hr style="width: 100%; border: 0; border-top: 1px solid #555;">
+        <h3>JOIN A ROOM</h3>
+        <input id="room-code-input" placeholder="Enter 4-Char Code" maxlength="4" style="text-transform: uppercase; letter-spacing: 3px; font-weight: bold;">
+        <button onclick="joinRoom()">JOIN ROOM</button>
+        <p>— OR —</p>
+        <button class="secondary" onclick="createRoom()">CREATE NEW ROOM</button>
+        <button class="secondary" onclick="location.reload()" style="background: black; margin-top:10px;">LOGOUT</button>
       </div>
 
-      <ul id="messages"></ul>
+      <div id="chat-container" class="hidden">
+        <div id="sidebar">
+          <small>CURRENT ROOM</small>
+          <div id="room-display">----</div>
+          <small style="margin-top: 20px;">ONLINE USERS</small>
+          <ul id="user-list"></ul>
+          <div style="margin-top: auto;">
+            <button onclick="leaveRoom()" style="width: 100%; background: #333;">LEAVE ROOM</button>
+          </div>
+        </div>
 
-      <form id="form" onsubmit="event.preventDefault(); sendMessage();">
-        <input id="input-msg" autocomplete="off" placeholder="Type a message..." />
-        <button style="width: auto;">SEND</button>
-      </form>
-    </div>
+        <div id="main-chat">
+          <div id="header">
+            <div style="display: flex; align-items: center;">
+                 <input type="file" id="avatar-input" hidden accept="image/*"> 
+                <input type="file" id="wallpaper-input" hidden accept="image/*">
+                <img id="header-avatar" class="user-avatar" src="" onclick="document.getElementById('avatar-input').click()" title="Change Profile Pic">
+                <span id="header-username" style="font-weight: bold; margin-left: 10px;">User</span>
+            </div>
+            <button onclick="document.getElementById('wallpaper-input').click()" style="padding: 5px 10px; font-size: 0.8em; width: auto;">BG</button>
+          </div>
+
+          <ul id="messages"></ul>
+
+          <form id="form" onsubmit="event.preventDefault(); sendMessage();">
+            <input id="input-msg" autocomplete="off" placeholder="Type a message..." />
+            <button style="width: auto;">SEND</button>
+          </form>
+        </div>
+      </div>
+
   </div>
 
   <script src="https://yapper-chat.onrender.com/socket.io/socket.io.js"></script>
   <script>
-    const SERVER_URL = "https://yapper-chat.onrender.com"; // YOUR RENDER LINK
+    const SERVER_URL = "https://yapper-chat.onrender.com";
     const socket = io(SERVER_URL);
 
     let currentUser = null;
     let currentRoom = null;
+    let currentMode = 'login'; // Track login vs register
 
-    // --- NAVIGATION ---
+    // --- TRANSITION: WELCOME -> APP ---
+    function enterApp(mode) {
+      currentMode = mode;
+      
+      // Update Title & Button Text
+      const text = mode.toUpperCase();
+      document.getElementById('auth-title').innerText = text === 'REGISTER' ? 'REGISTER' : 'LOGIN';
+      document.getElementById('auth-btn').innerText = text === 'REGISTER' ? 'REGISTER' : 'LOGIN';
+      
+      // Fade Animation
+      const overlay = document.getElementById('welcome-overlay');
+      overlay.style.opacity = '0';
+      overlay.style.transform = 'scale(1.1)'; 
+      overlay.style.pointerEvents = 'none'; 
+
+      const app = document.getElementById('app-container');
+      app.style.opacity = '1';
+      app.style.pointerEvents = 'all'; 
+    }
+
+    function goBack() {
+      // Fade Back to Welcome
+      const app = document.getElementById('app-container');
+      app.style.opacity = '0';
+      app.style.pointerEvents = 'none';
+
+      const overlay = document.getElementById('welcome-overlay');
+      overlay.style.opacity = '1';
+      overlay.style.transform = 'scale(1)';
+      overlay.style.pointerEvents = 'all';
+    }
+
+    // --- SCREEN SWITCHING (Within App) ---
     function showScreen(screenId) {
         ['login-screen', 'lobby-screen', 'chat-container'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
@@ -160,13 +226,15 @@
         if(screenId === 'chat-container') document.getElementById('chat-container').style.display = 'flex';
     }
 
-    // --- AUTH ---
-    async function handleAuth(mode) {
+    // --- AUTH LOGIC ---
+    async function handleAuth() {
         const u = document.getElementById('u-name').value;
         const p = document.getElementById('p-word').value;
         if(!u || !p) return;
 
-        const res = await fetch(SERVER_URL + '/' + mode, { 
+        const endpoint = currentMode === 'login' ? '/login' : '/register';
+
+        const res = await fetch(SERVER_URL + endpoint, { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify({ username: u, password: p }) 
@@ -174,8 +242,12 @@
         const data = await res.json();
 
         if (data.success) {
-            if (mode === 'register') {
+            if (currentMode === 'register') {
                 alert("Registered! Now Login.");
+                // Switch mode to login automatically
+                currentMode = 'login';
+                document.getElementById('auth-title').innerText = "LOGIN";
+                document.getElementById('auth-btn').innerText = "LOGIN";
             } else {
                 currentUser = data.username;
                 applyUserAssets(data);
@@ -217,31 +289,19 @@
     function enterRoom(code) {
         currentRoom = code;
         document.getElementById('room-display').innerText = code;
-        document.getElementById('messages').innerHTML = ''; // Clear old chats
-        
-        // Notify Server
+        document.getElementById('messages').innerHTML = ''; 
         socket.emit('join_room', { username: currentUser, room: code });
-        
         showScreen('chat-container');
     }
 
-    // --- FIXED: LEAVE ROOM LOGIC ---
+    // --- LEAVE ROOM (FIXED) ---
     function leaveRoom() {
-        // 1. Disconnect socket (Tells server "User Left")
-        socket.disconnect();
-        
-        // 2. Hide Chat, Show Lobby
-        document.getElementById('chat-container').classList.add('hidden');
-        document.getElementById('lobby-screen').classList.remove('hidden');
-        
-        // 3. Reset variables
-        currentRoom = null;
+        socket.emit('leave_room');
         document.getElementById('messages').innerHTML = '';
         document.getElementById('user-list').innerHTML = '';
         document.getElementById('room-display').innerText = '----';
-
-        // 4. Reconnect immediately so we are ready to join a new room
-        socket.connect();
+        currentRoom = null;
+        showScreen('lobby-screen');
     }
 
     // --- CHAT LOGIC ---
@@ -254,9 +314,8 @@
         }
     }
 
-    // --- SOCKET LISTENERS ---
     socket.on('chat message', (msg) => {
-        if(msg.user !== currentUser) addMessage(msg); // Don't double add my own
+        if(msg.user !== currentUser) addMessage(msg);
     });
 
     socket.on('system_message', (text) => {
