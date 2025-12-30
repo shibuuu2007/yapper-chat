@@ -3,318 +3,262 @@
 <head>
   <title>YAPPER</title>
   <style>
-    /* --- 1. GLOBAL & FONTS --- */
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
     body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'JetBrains Mono', monospace;
-      color: white;
-      /* FIX: Removed the leading slash so it works in the App */
+      margin: 0; overflow: hidden; font-family: 'JetBrains Mono', monospace; color: white;
       background: url('assets/background.png') no-repeat center center fixed; 
-      background-size: cover;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
+      background-size: cover; height: 100vh; display: flex; flex-direction: column;
     }
 
-    /* --- 2. WELCOME OVERLAY --- */
-    #welcome-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      /* FIX: Removed the leading slash */
-      background: url('assets/welcome.png') no-repeat center center;
-      background-size: cover;
-      z-index: 9999;
-      transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
-    }
+    /* GLASS EFFECT */
+    .glass-panel { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; }
 
-    /* INVISIBLE BUTTONS */
-    .ghost-btn {
-      position: absolute;
-      height: 50px;  
-      width: 225px;  
-      background: transparent; 
-      cursor: pointer;
-      border: none;
-    }
+    /* CENTER BOXES (Login & Lobby) */
+    .center-box { margin: auto; padding: 40px; text-align: center; width: 300px; position: relative; display: flex; flex-direction: column; gap: 15px; }
 
-    #btn-login-ghost { top: 55%; left: 10%; }
-    #btn-register-ghost { top: 55%; left: 33%; }
-
-    /* --- 3. CHAT APP INTERFACE --- */
-    #app-container {
-      opacity: 0;
-      transition: opacity 0.8s ease; 
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      pointer-events: none; 
-    }
-
-    .glass-panel {
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* AUTH BOX */
-    #auth-box {
-      margin: auto;
-      padding: 40px;
-      border-radius: 20px;
-      text-align: center;
-      width: 300px;
-      position: relative; 
-    }
-
-    .back-btn {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: transparent;
-      border: none;
-      color: #aaa;
-      font-size: 1.2em;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .back-btn:hover { color: white; transform: translateX(-3px); }
-
-    input {
-      width: 100%; padding: 12px; margin: 10px 0;
-      background: rgba(0,0,0,0.5); border: 1px solid #555;
-      color: white; border-radius: 5px; outline: none;
-      box-sizing: border-box; 
-    }
+    input { width: 100%; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; border-radius: 5px; outline: none; text-align: center; }
     
-    button.action-btn {
-      width: 100%; padding: 12px; margin-top: 10px;
-      background: #ff007f; color: white; border: none;
-      font-weight: bold; cursor: pointer; border-radius: 5px;
-      text-transform: uppercase; 
-    }
-    button.action-btn:hover { background: #d6006c; }
+    button { padding: 12px; background: #ff007f; color: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; text-transform: uppercase; transition: 0.2s; font-family: inherit; }
+    button:hover { background: #d6006c; transform: scale(1.02); }
+    button.secondary { background: #444; }
+    button.secondary:hover { background: #666; }
 
-    /* CHAT INTERFACE */
-    #chat-interface { display: none; height: 100%; flex-direction: column; }
+    /* CHAT LAYOUT */
+    #chat-container { display: none; height: 100vh; display: flex; } /* Flex row */
     
-    #header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    /* SIDEBAR (Room Info) */
+    #sidebar { width: 250px; background: rgba(0,0,0,0.8); padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; }
+    #room-display { font-size: 2em; color: #ff007f; font-weight: bold; margin-bottom: 5px; }
+    #user-list { list-style: none; padding: 0; margin-top: 20px; overflow-y: auto; }
+    #user-list li { padding: 8px; border-bottom: 1px solid #333; color: #aaa; display: flex; align-items: center; }
+    #user-list li::before { content: '●'; color: #00ff00; margin-right: 10px; font-size: 0.8em; }
+
+    /* MAIN CHAT AREA */
+    #main-chat { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); }
+    #header { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); }
     #messages { flex-grow: 1; list-style: none; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    #messages li { padding: 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.5); max-width: 70%; width: fit-content; }
-    #form { padding: 20px; display: flex; gap: 10px; }
-    #input-msg { flex-grow: 1; border-radius: 20px; border: 1px solid #555; background: rgba(0,0,0,0.5); color: white; padding: 10px 20px; outline: none; }
-
-    /* PROFILE PIC STYLES */
-    .user-avatar {
-      width: 45px; 
-      height: 45px;
-      border-radius: 50%; 
-      margin-right: 15px;
-      border: 2px solid #ff007f;
-      object-fit: cover;
-      cursor: pointer; 
-      transition: transform 0.2s;
-    }
-    .user-avatar:hover { transform: scale(1.1); }
+    #messages li { padding: 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.6); max-width: 70%; width: fit-content; }
+    #messages li.system { align-self: center; background: transparent; color: #ff007f; font-size: 0.8em; border: 1px solid #ff007f; }
     
-    #header-left { display: flex; align-items: center; }
+    #form { padding: 20px; display: flex; gap: 10px; background: rgba(0,0,0,0.5); }
+    #input-msg { flex-grow: 1; text-align: left; }
 
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #ff007f; object-fit: cover; cursor: pointer; }
+
+    /* HIDE/SHOW SECTIONS */
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-  <div id="welcome-overlay">
-    <div id="btn-login-ghost" class="ghost-btn" onclick="enterApp('login')"></div>
-    <div id="btn-register-ghost" class="ghost-btn" onclick="enterApp('register')"></div>
+  <div id="login-screen" class="center-box glass-panel">
+    <h2>LOGIN</h2>
+    <input id="u-name" placeholder="Username" autocomplete="off" />
+    <input id="p-word" type="password" placeholder="Password" />
+    <button onclick="handleAuth('login')">Login</button>
+    <button class="secondary" onclick="handleAuth('register')">Register</button>
+    <p id="status" style="color: #ff4d4d; font-size: 0.8em;"></p>
   </div>
 
-  <div id="app-container">
+  <div id="lobby-screen" class="center-box glass-panel hidden">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <img id="lobby-avatar" class="user-avatar" src="">
+        <h2 id="lobby-welcome">Welcome</h2>
+    </div>
+    <hr style="width: 100%; border: 0; border-top: 1px solid #555;">
     
-    <div id="auth-box" class="glass-panel">
-      <button class="back-btn" onclick="goBack()" title="Return to Home">←</button>
-      
-      <h2 id="auth-title">LOGIN</h2>
-      <input id="u-name" placeholder="Username" autocomplete="off" />
-      <input id="p-word" type="password" placeholder="Password" />
-      
-      <button id="auth-btn" class="action-btn" onclick="handleAuth()">GO</button>
-      
-      <p id="status" style="color: #ff4d4d; margin-top: 10px; font-size: 0.9em;"></p>
+    <h3>JOIN A ROOM</h3>
+    <input id="room-code-input" placeholder="Enter 4-Char Code" maxlength="4" style="text-transform: uppercase; letter-spacing: 3px; font-weight: bold;">
+    <button onclick="joinRoom()">JOIN ROOM</button>
+    
+    <p>— OR —</p>
+    <button class="secondary" onclick="createRoom()">CREATE NEW ROOM</button>
+  </div>
+
+  <div id="chat-container" class="hidden">
+    
+    <div id="sidebar">
+      <small>CURRENT ROOM</small>
+      <div id="room-display">----</div>
+      <small style="margin-top: 20px;">ONLINE USERS</small>
+      <ul id="user-list">
+        </ul>
+      <div style="margin-top: auto;">
+        <button onclick="leaveRoom()" style="width: 100%; background: #333;">LEAVE ROOM</button>
+      </div>
     </div>
 
-    <div id="chat-interface">
-      <div id="header" class="glass-panel">
-        <div id="header-left">
-            <img id="my-avatar" class="user-avatar" src="" onclick="document.getElementById('avatar-input').click()" title="Change Profile Pic">
-            <input type="file" id="avatar-input" hidden accept="image/*"> 
-            <span id="welcome-msg" style="font-weight: bold;"></span>
-        </div>
-
-        <div>
+    <div id="main-chat">
+      <div id="header">
+        <div style="display: flex; align-items: center;">
+             <input type="file" id="avatar-input" hidden accept="image/*"> 
             <input type="file" id="wallpaper-input" hidden accept="image/*">
-            
-            <button onclick="document.getElementById('wallpaper-input').click()" style="background:#ff007f; padding: 8px 15px; border-radius: 5px; border:none; color:white; cursor:pointer; font-weight: bold; margin-right: 10px;">WALLPAPER</button>
-            <button onclick="location.reload()" style="background:black; padding: 8px 15px; border-radius: 5px; border:none; color:#4da5ff; cursor:pointer; font-weight: bold;">LOGOUT</button>
+            <img id="header-avatar" class="user-avatar" src="" onclick="document.getElementById('avatar-input').click()" title="Change Profile Pic">
+            <span id="header-username" style="font-weight: bold; margin-left: 10px;">User</span>
         </div>
+        <button onclick="document.getElementById('wallpaper-input').click()" style="padding: 5px 10px; font-size: 0.8em;">BG</button>
       </div>
 
       <ul id="messages"></ul>
-      <form id="form" class="glass-panel">
+
+      <form id="form" onsubmit="event.preventDefault(); sendMessage();">
         <input id="input-msg" autocomplete="off" placeholder="Type a message..." />
-        <button class="action-btn" style="width: auto; margin:0;">SEND</button>
+        <button>SEND</button>
       </form>
     </div>
-
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://yapper-chat.onrender.com/socket.io/socket.io.js"></script>
   <script>
-    var socket = io();
-    var currentUser = null;
-    var currentMode = 'login'; 
+    const SERVER_URL = "https://yapper-chat.onrender.com"; // YOUR RENDER LINK
+    const socket = io(SERVER_URL);
 
-    // --- 1. TRANSITION LOGIC ---
-    function enterApp(mode) {
-      currentMode = mode;
-      
-      const text = mode.toUpperCase();
-      document.getElementById('auth-title').innerText = text;
-      document.getElementById('auth-btn').innerText = text; 
-      
-      const overlay = document.getElementById('welcome-overlay');
-      overlay.style.opacity = '0';
-      overlay.style.transform = 'scale(1.1)'; 
-      overlay.style.pointerEvents = 'none'; 
+    let currentUser = null;
+    let currentRoom = null;
 
-      const app = document.getElementById('app-container');
-      app.style.opacity = '1';
-      app.style.pointerEvents = 'all'; 
-    
-    document.getElementById('p-word').addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') handleAuth();
-    });
+    // --- NAVIGATION ---
+    function showScreen(screenId) {
+        ['login-screen', 'lobby-screen', 'chat-container'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(screenId).classList.remove('hidden');
+        if(screenId === 'chat-container') document.getElementById('chat-container').style.display = 'flex';
     }
 
-    function goBack() {
-      const app = document.getElementById('app-container');
-      app.style.opacity = '0';
-      app.style.pointerEvents = 'none';
+    // --- AUTH ---
+    async function handleAuth(mode) {
+        const u = document.getElementById('u-name').value;
+        const p = document.getElementById('p-word').value;
+        if(!u || !p) return;
 
-      const overlay = document.getElementById('welcome-overlay');
-      overlay.style.opacity = '1';
-      overlay.style.transform = 'scale(1)';
-      overlay.style.pointerEvents = 'all';
-    }
+        const res = await fetch(SERVER_URL + '/' + mode, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ username: u, password: p }) 
+        });
+        const data = await res.json();
 
-    // --- 2. AUTH LOGIC ---
-    async function handleAuth() {
-      const u = document.getElementById('u-name').value;
-      const p = document.getElementById('p-word').value;
-      if(!u || !p) return;
-
-      const endpoint = currentMode === 'login' ? '/login' : '/register';
-      
-      const res = await fetch(endpoint, { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: u, password: p }) 
-      });
-      const data = await res.json();
-
-      if (currentMode === 'register') {
-        if(data.success) {
-            alert("Account Created! Switching to Login...");
-            currentMode = 'login';
-            document.getElementById('auth-title').innerText = "LOGIN";
-            document.getElementById('auth-btn').innerText = "LOGIN";
+        if (data.success) {
+            if (mode === 'register') {
+                alert("Registered! Now Login.");
+            } else {
+                currentUser = data.username;
+                applyUserAssets(data);
+                
+                // Show Lobby
+                document.getElementById('lobby-welcome').innerText = currentUser;
+                showScreen('lobby-screen');
+            }
         } else {
             document.getElementById('status').innerText = data.message;
         }
-      } else {
-        // Login Mode
-        if(data.success) {
-          currentUser = data.username;
-          
-          // Apply Wallpaper
-          if (data.wallpaper && data.wallpaper.startsWith('#')) {
-             document.body.style.background = data.wallpaper;
-          } else if (data.wallpaper) {
-             document.body.style.background = `url(${data.wallpaper}) no-repeat center center fixed`;
-             document.body.style.backgroundSize = "cover";
-          }
-          
-          // Apply Profile Picture
-          document.getElementById('my-avatar').src = data.profile_pic || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-
-          document.getElementById('auth-box').style.display = 'none';
-          document.getElementById('chat-interface').style.display = 'flex';
-          document.getElementById('welcome-msg').innerText = "USER: " + currentUser;
-        } else {
-          document.getElementById('status').innerText = data.message;
-        }
-      }
     }
 
-    // --- 3. CHAT LOGIC ---
-    document.getElementById('form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      var input = document.getElementById('input-msg');
-      if (input.value) {
-        socket.emit('chat message', { user: currentUser, text: input.value });
-        input.value = '';
-      }
+    function applyUserAssets(data) {
+        const pic = data.profile_pic || "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+        document.getElementById('lobby-avatar').src = pic;
+        document.getElementById('header-avatar').src = pic;
+        document.getElementById('header-username').innerText = currentUser;
+
+        if (data.wallpaper) {
+            const bg = data.wallpaper.startsWith('#') ? data.wallpaper : `url(${data.wallpaper})`;
+            document.body.style.background = bg;
+            document.body.style.backgroundSize = "cover";
+        }
+    }
+
+    // --- ROOM LOGIC ---
+    function createRoom() {
+        // Generate random 4-char code (A-Z, 0-9)
+        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+        enterRoom(code);
+    }
+
+    function joinRoom() {
+        const code = document.getElementById('room-code-input').value.toUpperCase();
+        if (code.length < 1) return alert("Enter a code!");
+        enterRoom(code);
+    }
+
+    function enterRoom(code) {
+        currentRoom = code;
+        document.getElementById('room-display').innerText = code;
+        document.getElementById('messages').innerHTML = ''; // Clear old chats
+        
+        // Notify Server
+        socket.emit('join_room', { username: currentUser, room: code });
+        
+        showScreen('chat-container');
+    }
+
+    function leaveRoom() {
+        location.reload(); // Simple way to leave is just refresh
+    }
+
+    // --- CHAT LOGIC ---
+    function sendMessage() {
+        const input = document.getElementById('input-msg');
+        if (input.value) {
+            socket.emit('chat message', { user: currentUser, text: input.value });
+            // Add my own message immediately
+            addMessage({ user: currentUser, text: input.value }); 
+            input.value = '';
+        }
+    }
+
+    // --- SOCKET LISTENERS ---
+    socket.on('chat message', (msg) => {
+        if(msg.user !== currentUser) addMessage(msg); // Don't double add my own
     });
 
-    socket.on('chat message', function(msg) {
-      var item = document.createElement('li');
-      item.innerHTML = `<strong style="color:#ff007f">${msg.user}:</strong> ${msg.text}`;
-      document.getElementById('messages').appendChild(item);
-      window.scrollTo(0, document.body.scrollHeight);
+    socket.on('system_message', (text) => {
+        const li = document.createElement('li');
+        li.classList.add('system');
+        li.innerText = text;
+        document.getElementById('messages').appendChild(li);
     });
 
-    // --- 4. PROFILE PIC UPLOAD ---
-    document.getElementById('avatar-input').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    socket.on('room_users', (users) => {
+        const list = document.getElementById('user-list');
+        list.innerHTML = '';
+        users.forEach(u => {
+            const li = document.createElement('li');
+            li.innerText = u;
+            list.appendChild(li);
+        });
+    });
 
-        const formData = new FormData();
-        formData.append('avatar', file);
-        formData.append('username', currentUser);
+    function addMessage(msg) {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong style="color:#ff007f">${msg.user}:</strong> ${msg.text}`;
+        document.getElementById('messages').appendChild(li);
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    }
 
-        try {
-            const res = await fetch('/upload-profile-pic', { method: 'POST', body: formData });
+    // --- UPLOADS ---
+    ['avatar', 'wallpaper'].forEach(type => {
+        document.getElementById(`${type}-input`).addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append(type, file);
+            formData.append('username', currentUser);
+            
+            const res = await fetch(`${SERVER_URL}/upload-${type === 'avatar' ? 'profile-pic' : 'wallpaper-image'}`, { method: 'POST', body: formData });
             const data = await res.json();
-            if (data.success) {
-                document.getElementById('my-avatar').src = data.url;
-            } else {
-                alert("Upload failed");
+            
+            if(data.success) {
+                if(type === 'avatar') {
+                    document.getElementById('header-avatar').src = data.url;
+                    document.getElementById('lobby-avatar').src = data.url;
+                } else {
+                    document.body.style.background = `url(${data.url}) no-repeat center center fixed`;
+                    document.body.style.backgroundSize = "cover";
+                }
             }
-        } catch (err) { console.error(err); }
+        });
     });
-
-    // --- 5. WALLPAPER UPLOAD ---
-    document.getElementById('wallpaper-input').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append('wallpaper', file);
-        formData.append('username', currentUser);
-
-        try {
-            const res = await fetch('/upload-wallpaper-image', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.success) {
-                document.body.style.background = `url(${data.url}) no-repeat center center fixed`;
-                document.body.style.backgroundSize = "cover";
-            } else {
-                alert("Wallpaper upload failed");
-            }
-        } catch (err) { console.error(err); }
-    });
-
   </script>
 </body>
 </html>
