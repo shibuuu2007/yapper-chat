@@ -5,6 +5,9 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
+    /* --- GLOBAL FIX: Keeps all sizes consistent --- */
+    * { box-sizing: border-box; }
+
     body {
       margin: 0; overflow: hidden; font-family: 'JetBrains Mono', monospace; color: white;
       background: url('assets/background.png') no-repeat center center fixed; 
@@ -15,11 +18,42 @@
     .glass-panel { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; }
 
     /* CENTER BOXES (Login & Lobby) */
-    .center-box { margin: auto; padding: 40px; text-align: center; width: 300px; position: relative; display: flex; flex-direction: column; gap: 15px; }
+    .center-box { 
+        margin: auto; 
+        padding: 40px; 
+        text-align: center; 
+        width: 350px; /* Slightly wider for better spacing */
+        position: relative; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 15px; 
+    }
 
-    input { width: 100%; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; border-radius: 5px; outline: none; text-align: center; }
+    input { 
+        width: 100%; 
+        padding: 12px; 
+        background: rgba(0,0,0,0.5); 
+        border: 1px solid #555; 
+        color: white; 
+        border-radius: 5px; 
+        outline: none; 
+        text-align: center; 
+    }
     
-    button { padding: 12px; background: #ff007f; color: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; text-transform: uppercase; transition: 0.2s; font-family: inherit; }
+    /* FIX: Added width: 100% so buttons match the input bars */
+    button { 
+        width: 100%; 
+        padding: 12px; 
+        background: #ff007f; 
+        color: white; 
+        border: none; 
+        font-weight: bold; 
+        cursor: pointer; 
+        border-radius: 5px; 
+        text-transform: uppercase; 
+        transition: 0.2s; 
+        font-family: inherit;
+    }
     button:hover { background: #d6006c; transform: scale(1.02); }
     button.secondary { background: #444; }
     button.secondary:hover { background: #666; }
@@ -97,14 +131,14 @@
             <img id="header-avatar" class="user-avatar" src="" onclick="document.getElementById('avatar-input').click()" title="Change Profile Pic">
             <span id="header-username" style="font-weight: bold; margin-left: 10px;">User</span>
         </div>
-        <button onclick="document.getElementById('wallpaper-input').click()" style="padding: 5px 10px; font-size: 0.8em;">BG</button>
+        <button onclick="document.getElementById('wallpaper-input').click()" style="padding: 5px 10px; font-size: 0.8em; width: auto;">BG</button>
       </div>
 
       <ul id="messages"></ul>
 
       <form id="form" onsubmit="event.preventDefault(); sendMessage();">
         <input id="input-msg" autocomplete="off" placeholder="Type a message..." />
-        <button>SEND</button>
+        <button style="width: auto;">SEND</button>
       </form>
     </div>
   </div>
@@ -170,7 +204,6 @@
 
     // --- ROOM LOGIC ---
     function createRoom() {
-        // Generate random 4-char code (A-Z, 0-9)
         const code = Math.random().toString(36).substring(2, 6).toUpperCase();
         enterRoom(code);
     }
@@ -192,8 +225,23 @@
         showScreen('chat-container');
     }
 
+    // --- FIXED: LEAVE ROOM LOGIC ---
     function leaveRoom() {
-        location.reload(); // Simple way to leave is just refresh
+        // 1. Disconnect socket (Tells server "User Left")
+        socket.disconnect();
+        
+        // 2. Hide Chat, Show Lobby
+        document.getElementById('chat-container').classList.add('hidden');
+        document.getElementById('lobby-screen').classList.remove('hidden');
+        
+        // 3. Reset variables
+        currentRoom = null;
+        document.getElementById('messages').innerHTML = '';
+        document.getElementById('user-list').innerHTML = '';
+        document.getElementById('room-display').innerText = '----';
+
+        // 4. Reconnect immediately so we are ready to join a new room
+        socket.connect();
     }
 
     // --- CHAT LOGIC ---
@@ -201,7 +249,6 @@
         const input = document.getElementById('input-msg');
         if (input.value) {
             socket.emit('chat message', { user: currentUser, text: input.value });
-            // Add my own message immediately
             addMessage({ user: currentUser, text: input.value }); 
             input.value = '';
         }
