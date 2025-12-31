@@ -4,10 +4,18 @@ const { Server } = require("socket.io");
 const { Client } = require('pg');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+// 1. IMPORT GEMINI
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
+
+// --- CONFIGURATION ---
+// PUT YOUR API KEY HERE (In quotes!)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // --- DATABASE ---
 const db = new Client({
@@ -22,14 +30,13 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.static(__dirname));
 app.use(express.json());
 
-// --- AUTH ROUTES ---
+// --- ROUTES (Login/Register/Uploads) ---
+// (These are exactly the same as before)
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   const hash = bcrypt.hashSync(password, 10);
-  // Default web-based assets
   const defaultPic = "https://cdn-icons-png.flaticon.com/512/847/847969.png"; 
   const defaultBg = "https://images.unsplash.com/photo-1534796636912-3b95b3ab5980?auto=format&fit=crop&w=1920&q=80"; 
-
   try {
     await db.query(`INSERT INTO users (username, password, wallpaper, profile_pic) VALUES ($1, $2, $3, $4)`, 
       [username, hash, defaultBg, defaultPic]);
@@ -48,7 +55,6 @@ app.post('/login', async (req, res) => {
   } catch (err) { res.json({ success: false, message: "Error" }); }
 });
 
-// --- UPLOAD ROUTES ---
 app.post('/upload-profile-pic', upload.single('avatar'), async (req, res) => {
   if (!req.file) return res.json({ success: false });
   const img = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
@@ -63,60 +69,85 @@ app.post('/upload-wallpaper-image', upload.single('wallpaper'), async (req, res)
   res.json({ success: true, url: img });
 });
 
-// --- CHAT ROOM LOGIC ---
-const connectedUsers = {}; // Tracks { socketId: { username, room } }
+// --- CHAT ROOM LOGIC WITH AI ---
+const connectedUsers = {}; 
 
 io.on('connection', (socket) => {
   
-  // 1. Join Room Event
   socket.on('join_room', ({ username, room }) => {
     socket.join(room);
-    
-    // Track user
     connectedUsers[socket.id] = { username, room };
-
-    // Tell ONLY the user they joined
     socket.emit('system_message', `You joined Room: ${room}`);
-    
-    // Tell EVERYONE else in the room
-    socket.to(room).emit('system_message', `${username} has joined the chat.`);
-
-    // Send updated User List to everyone in the room
+    socket.to(room).emit('system_message', `${username} has joined.`);
     io.to(room).emit('room_users', getUsersInRoom(room));
   });
 
-  // 2. Chat Message Event
-  socket.on('chat message', (data) => {
+  socket.on('leave_room', () => {
     const user = connectedUsers[socket.id];
     if (user) {
-      // Only send to people in the same room
-      io.to(user.room).emit('chat message', data);
+        const { room, username } = user;
+        socket.leave(room);
+        delete connectedUsers[socket.id];
+        io.to(room).emit('system_message', `${username} left.`);
+        io.to(room).emit('room_users', getUsersInRoom(room));
     }
   });
 
-  // 3. Disconnect Event
+  // --- THE AI LOGIC IS HERE ---
+  socket.on('chat message', async (data) => {
+    const user = connectedUsers[socket.id];
+    if (user) {
+      // 1. Send the User's message to everyone normally
+      io.to(user.room).emit('chat message', data);
+
+      // 2. Check if they are calling Gemini
+      const cleanMsg = data.text.trim(); // remove extra spaces
+      if (cleanMsg.toLowerCase().startsWith("gemini ")) {
+          
+          // Extract the prompt (remove the word "gemini ")
+          const prompt = cleanMsg.substring(7);
+
+          try {
+              // Ask Google AI
+              const result = await model.generateContent(prompt);
+              const response = result.response;
+              const aiText = response.text();
+
+              // Send the AI's reply back to the room
+              io.to(user.room).emit('chat message', {
+                  user: "Gemini", // The bot's name
+                  text: aiText
+              });
+
+          } catch (error) {
+              console.error(error);
+              // Send error message if AI fails
+              io.to(user.room).emit('chat message', {
+                  user: "Gemini",
+                  text: "I am having trouble thinking right now. Try again later!"
+              });
+          }
+      }
+    }
+  });
+
   socket.on('disconnect', () => {
     const user = connectedUsers[socket.id];
     if (user) {
       const { room, username } = user;
-      delete connectedUsers[socket.id]; // Remove from list
-      
-      // Notify room
+      delete connectedUsers[socket.id];
       io.to(room).emit('system_message', `${username} left.`);
       io.to(room).emit('room_users', getUsersInRoom(room));
     }
   });
 });
 
-// Helper to get list of usernames in a specific room
 function getUsersInRoom(room) {
   const users = [];
   for (const id in connectedUsers) {
-    if (connectedUsers[id].room === room) {
-      users.push(connectedUsers[id].username);
-    }
+    if (connectedUsers[id].room === room) users.push(connectedUsers[id].username);
   }
-  return [...new Set(users)]; // Remove duplicates
+  return [...new Set(users)];
 }
 
 const port = process.env.PORT || 3000;
