@@ -15,7 +15,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 // Access the Key from Render's Environment Variables
 const GEMINI_API_KEY = "AIzaSyCR_jfy2kPL7POGjp53tBCmCSsj-nEA2hI"; 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 // --- DATABASE ---
 const db = new Client({
