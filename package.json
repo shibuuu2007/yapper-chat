@@ -10,12 +10,12 @@
   "author": "HunterOG",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^2.4.3",
-    "express": "^4.21.2",
+    "express": "^4.17.1",
     "multer": "^1.4.5-lts.1",
-    "pg": "^8.13.1",
-    "socket.io": "^4.8.1"
+    "pg": "^8.7.1",
+    "socket.io": "^4.4.1",
+    "@google/generative-ai": "latest" 
   },
   "devDependencies": {
     "electron": "^39.2.7",
