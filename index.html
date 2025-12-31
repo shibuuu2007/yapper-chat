@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Yapper</title>
+  <title>YAPPER</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
-    /* --- GLOBAL FIX: Keeps all sizes consistent --- */
+    /* --- GLOBAL FIXES --- */
     * { box-sizing: border-box; }
 
     body {
@@ -14,14 +14,19 @@
       background-size: cover; height: 100vh; display: flex; flex-direction: column;
     }
 
-    /* --- 1. WELCOME OVERLAY (Restored) --- */
+    /* --- 1. WELCOME OVERLAY --- */
     #welcome-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: url('assets/welcome.png') no-repeat center center;
+      /* FALLBACK: Black background ensures you never see the login screen early */
+      background-color: black; 
+      background-image: url('assets/welcome.png');
+      background-repeat: no-repeat;
+      background-position: center center;
       background-size: cover;
       z-index: 9999;
       transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+      display: block; 
     }
 
     /* INVISIBLE GHOST BUTTONS */
@@ -38,19 +43,18 @@
 
     /* --- 2. MAIN APP CONTAINER --- */
     #app-container {
+      display: none; 
       opacity: 0;
       transition: opacity 0.8s ease; 
       height: 100%;
       width: 100%;
-      display: flex;
       flex-direction: column;
-      pointer-events: none; /* Can't click until welcome fades */
     }
 
     /* GLASS EFFECT */
     .glass-panel { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; }
 
-    /* CENTER BOXES (Login & Lobby) */
+    /* CENTER BOXES */
     .center-box { 
         margin: auto; 
         padding: 40px; 
@@ -62,7 +66,7 @@
         gap: 15px; 
     }
 
-    /* BACK BUTTON (To go from Login back to Welcome) */
+    /* BACK BUTTON */
     .back-btn {
       position: absolute; top: 10px; left: 15px;
       background: transparent; border: none; color: #aaa;
@@ -76,7 +80,6 @@
         outline: none; text-align: center; 
     }
     
-    /* BUTTON STYLES (Fixed Alignment) */
     button { 
         width: 100%; padding: 12px; background: #ff007f; color: white; 
         border: none; font-weight: bold; cursor: pointer; border-radius: 5px; 
@@ -87,27 +90,29 @@
     button.secondary:hover { background: #666; }
 
     /* CHAT LAYOUT */
-    #chat-container { display: none; height: 100vh; display: flex; }
-    
-    /* SIDEBAR */
+    #chat-container { display: none; height: 100vh; }
     #sidebar { width: 250px; background: rgba(0,0,0,0.8); padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; }
     #room-display { font-size: 2em; color: #ff007f; font-weight: bold; margin-bottom: 5px; }
+    
+    /* USER LIST STYLES */
     #user-list { list-style: none; padding: 0; margin-top: 20px; overflow-y: auto; }
     #user-list li { padding: 8px; border-bottom: 1px solid #333; color: #aaa; display: flex; align-items: center; }
-    #user-list li::before { content: '●'; color: #00ff00; margin-right: 10px; font-size: 0.8em; }
+    
+    /* ROBOT ICON STYLE (New!) */
+    .bot-avatar {
+        width: 25px; height: 25px; margin-right: 10px;
+        border-radius: 50%; border: 1px solid #00d2ff;
+        vertical-align: middle;
+    }
 
-    /* MAIN CHAT AREA */
     #main-chat { flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); }
     #header { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); }
     #messages { flex-grow: 1; list-style: none; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     #messages li { padding: 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.6); max-width: 70%; width: fit-content; }
     #messages li.system { align-self: center; background: transparent; color: #ff007f; font-size: 0.8em; border: 1px solid #ff007f; }
-    
     #form { padding: 20px; display: flex; gap: 10px; background: rgba(0,0,0,0.5); }
     #input-msg { flex-grow: 1; text-align: left; }
-
     .user-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #ff007f; object-fit: cover; cursor: pointer; }
-
     .hidden { display: none !important; }
   </style>
 </head>
@@ -183,41 +188,42 @@
 
     let currentUser = null;
     let currentRoom = null;
-    let currentMode = 'login'; // Track login vs register
+    let currentMode = 'login'; 
 
     // --- TRANSITION: WELCOME -> APP ---
     function enterApp(mode) {
       currentMode = mode;
       
-      // Update Title & Button Text
       const text = mode.toUpperCase();
       document.getElementById('auth-title').innerText = text === 'REGISTER' ? 'REGISTER' : 'LOGIN';
       document.getElementById('auth-btn').innerText = text === 'REGISTER' ? 'REGISTER' : 'LOGIN';
       
-      // Fade Animation
       const overlay = document.getElementById('welcome-overlay');
       overlay.style.opacity = '0';
-      overlay.style.transform = 'scale(1.1)'; 
       overlay.style.pointerEvents = 'none'; 
+      setTimeout(() => overlay.style.display = 'none', 800); 
 
       const app = document.getElementById('app-container');
-      app.style.opacity = '1';
-      app.style.pointerEvents = 'all'; 
+      app.style.display = 'flex'; 
+      setTimeout(() => {
+          app.style.opacity = '1';
+          app.style.pointerEvents = 'all'; 
+      }, 50);
     }
 
     function goBack() {
-      // Fade Back to Welcome
       const app = document.getElementById('app-container');
       app.style.opacity = '0';
-      app.style.pointerEvents = 'none';
+      setTimeout(() => app.style.display = 'none', 800);
 
       const overlay = document.getElementById('welcome-overlay');
-      overlay.style.opacity = '1';
-      overlay.style.transform = 'scale(1)';
-      overlay.style.pointerEvents = 'all';
+      overlay.style.display = 'block';
+      setTimeout(() => {
+          overlay.style.opacity = '1';
+          overlay.style.pointerEvents = 'all';
+      }, 50);
     }
 
-    // --- SCREEN SWITCHING (Within App) ---
     function showScreen(screenId) {
         ['login-screen', 'lobby-screen', 'chat-container'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
@@ -226,17 +232,14 @@
         if(screenId === 'chat-container') document.getElementById('chat-container').style.display = 'flex';
     }
 
-    // --- AUTH LOGIC ---
     async function handleAuth() {
         const u = document.getElementById('u-name').value;
         const p = document.getElementById('p-word').value;
         if(!u || !p) return;
 
         const endpoint = currentMode === 'login' ? '/login' : '/register';
-
         const res = await fetch(SERVER_URL + endpoint, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
+            method: 'POST', headers: {'Content-Type': 'application/json'}, 
             body: JSON.stringify({ username: u, password: p }) 
         });
         const data = await res.json();
@@ -244,15 +247,12 @@
         if (data.success) {
             if (currentMode === 'register') {
                 alert("Registered! Now Login.");
-                // Switch mode to login automatically
                 currentMode = 'login';
                 document.getElementById('auth-title').innerText = "LOGIN";
                 document.getElementById('auth-btn').innerText = "LOGIN";
             } else {
                 currentUser = data.username;
                 applyUserAssets(data);
-                
-                // Show Lobby
                 document.getElementById('lobby-welcome').innerText = currentUser;
                 showScreen('lobby-screen');
             }
@@ -274,18 +274,15 @@
         }
     }
 
-    // --- ROOM LOGIC ---
     function createRoom() {
         const code = Math.random().toString(36).substring(2, 6).toUpperCase();
         enterRoom(code);
     }
-
     function joinRoom() {
         const code = document.getElementById('room-code-input').value.toUpperCase();
         if (code.length < 1) return alert("Enter a code!");
         enterRoom(code);
     }
-
     function enterRoom(code) {
         currentRoom = code;
         document.getElementById('room-display').innerText = code;
@@ -294,7 +291,6 @@
         showScreen('chat-container');
     }
 
-    // --- LEAVE ROOM (FIXED) ---
     function leaveRoom() {
         socket.emit('leave_room');
         document.getElementById('messages').innerHTML = '';
@@ -304,7 +300,6 @@
         showScreen('lobby-screen');
     }
 
-    // --- CHAT LOGIC ---
     function sendMessage() {
         const input = document.getElementById('input-msg');
         if (input.value) {
@@ -314,23 +309,27 @@
         }
     }
 
-    socket.on('chat message', (msg) => {
-        if(msg.user !== currentUser) addMessage(msg);
-    });
-
+    socket.on('chat message', (msg) => { if(msg.user !== currentUser) addMessage(msg); });
     socket.on('system_message', (text) => {
-        const li = document.createElement('li');
-        li.classList.add('system');
-        li.innerText = text;
+        const li = document.createElement('li'); li.classList.add('system'); li.innerText = text;
         document.getElementById('messages').appendChild(li);
     });
 
+    // --- UPDATED ROOM USERS LIST WITH GEMINI AVATAR ---
     socket.on('room_users', (users) => {
         const list = document.getElementById('user-list');
         list.innerHTML = '';
         users.forEach(u => {
             const li = document.createElement('li');
-            li.innerText = u;
+            
+            // CHECK: If the user is Gemini, give them the Robot Look
+            if (u === 'Gemini') {
+                li.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/4712/4712035.png" class="bot-avatar"> <span style="color: #00d2ff; font-weight: bold;">Gemini</span>`;
+            } else {
+                // Normal User (Green Dot)
+                li.innerHTML = `<span style="color:#00ff00; margin-right:10px; font-size:1.2em;">●</span> ${u}`;
+            }
+            
             list.appendChild(li);
         });
     });
@@ -341,19 +340,12 @@
         document.getElementById('messages').appendChild(li);
         document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
     }
-
-    // --- UPLOADS ---
     ['avatar', 'wallpaper'].forEach(type => {
         document.getElementById(`${type}-input`).addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append(type, file);
-            formData.append('username', currentUser);
-            
+            const file = e.target.files[0]; if (!file) return;
+            const formData = new FormData(); formData.append(type, file); formData.append('username', currentUser);
             const res = await fetch(`${SERVER_URL}/upload-${type === 'avatar' ? 'profile-pic' : 'wallpaper-image'}`, { method: 'POST', body: formData });
             const data = await res.json();
-            
             if(data.success) {
                 if(type === 'avatar') {
                     document.getElementById('header-avatar').src = data.url;
