@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
 // --- CONFIGURATION ---
-// PUT YOUR API KEY HERE (In quotes!)
+// Access the Key from Render's Environment Variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -30,8 +30,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.static(__dirname));
 app.use(express.json());
 
-// --- ROUTES (Login/Register/Uploads) ---
-// (These are exactly the same as before)
+// --- ROUTES ---
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   const hash = bcrypt.hashSync(password, 10);
@@ -69,59 +68,61 @@ app.post('/upload-wallpaper-image', upload.single('wallpaper'), async (req, res)
   res.json({ success: true, url: img });
 });
 
-// --- CHAT ROOM LOGIC WITH AI ---
+// --- CHAT ROOM LOGIC ---
 const connectedUsers = {}; 
 
 io.on('connection', (socket) => {
   
+  // 1. Join Room
   socket.on('join_room', ({ username, room }) => {
     socket.join(room);
     connectedUsers[socket.id] = { username, room };
+
     socket.emit('system_message', `You joined Room: ${room}`);
     socket.to(room).emit('system_message', `${username} has joined.`);
+    
+    // Send updated list (includes Gemini)
     io.to(room).emit('room_users', getUsersInRoom(room));
   });
 
+  // 2. Leave Room
   socket.on('leave_room', () => {
     const user = connectedUsers[socket.id];
     if (user) {
         const { room, username } = user;
         socket.leave(room);
         delete connectedUsers[socket.id];
+        
         io.to(room).emit('system_message', `${username} left.`);
         io.to(room).emit('room_users', getUsersInRoom(room));
     }
   });
 
-  // --- THE AI LOGIC IS HERE ---
+  // 3. Chat Message + AI Logic
   socket.on('chat message', async (data) => {
     const user = connectedUsers[socket.id];
     if (user) {
-      // 1. Send the User's message to everyone normally
+      // Send User's message first
       io.to(user.room).emit('chat message', data);
 
-      // 2. Check if they are calling Gemini
-      const cleanMsg = data.text.trim(); // remove extra spaces
+      // Check for Gemini trigger
+      const cleanMsg = data.text.trim(); 
       if (cleanMsg.toLowerCase().startsWith("gemini ")) {
           
-          // Extract the prompt (remove the word "gemini ")
-          const prompt = cleanMsg.substring(7);
+          const prompt = cleanMsg.substring(7); // Remove "gemini "
 
           try {
-              // Ask Google AI
               const result = await model.generateContent(prompt);
               const response = result.response;
               const aiText = response.text();
 
-              // Send the AI's reply back to the room
               io.to(user.room).emit('chat message', {
-                  user: "Gemini", // The bot's name
+                  user: "Gemini", 
                   text: aiText
               });
 
           } catch (error) {
-              console.error(error);
-              // Send error message if AI fails
+              console.error("Gemini Error:", error);
               io.to(user.room).emit('chat message', {
                   user: "Gemini",
                   text: "I am having trouble thinking right now. Try again later!"
@@ -131,6 +132,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 4. Disconnect
   socket.on('disconnect', () => {
     const user = connectedUsers[socket.id];
     if (user) {
@@ -142,12 +144,19 @@ io.on('connection', (socket) => {
   });
 });
 
+// --- HELPER: GET USERS ---
 function getUsersInRoom(room) {
   const users = [];
   for (const id in connectedUsers) {
-    if (connectedUsers[id].room === room) users.push(connectedUsers[id].username);
+    if (connectedUsers[id].room === room) {
+      users.push(connectedUsers[id].username);
+    }
   }
-  return [...new Set(users)];
+  // Remove duplicates
+  const uniqueUsers = [...new Set(users)];
+  
+  // FIX: Always put 'Gemini' at the start of the list
+  return ['Gemini', ...uniqueUsers]; 
 }
 
 const port = process.env.PORT || 3000;
